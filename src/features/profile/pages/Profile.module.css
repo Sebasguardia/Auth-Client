@@ -1,0 +1,279 @@
+/* src/features/profile/pages/Profile.module.css */
+.container {
+  @apply min-h-screen bg-gradient-to-br from-purple-50 to-pink-100
+         relative overflow-hidden p-0 m-0 ;
+}
+
+.background {
+  @apply absolute inset-0;
+}
+
+.background .shape {
+  @apply absolute rounded-full;
+  animation: float 6s ease-in-out infinite;
+}
+
+.background .shape:first-child {
+  @apply w-72 h-72 bg-purple-200 opacity-20 -top-20 -left-20;
+  animation-delay: 0s;
+}
+
+.background .shape:last-child {
+  @apply w-96 h-96 bg-pink-200 opacity-20 -bottom-32 -right-32;
+  animation-delay: 3s;
+}
+
+/* LAYOUT CORREGIDO - Sin espacios */
+.profileLayout {
+  @apply w-full max-w-none mx-0 grid grid-cols-1 lg:grid-cols-4 gap-4 
+         relative z-10 min-h-screen p-4;
+}
+
+.mainContent {
+  @apply lg:col-span-2 flex flex-col gap-4;
+
+}
+
+/* Sidebar Styles - Altura ajustada */
+.sidebarCard {
+  @apply h-fit lg:sticky lg:top-4;
+}
+
+.avatarSection {
+  @apply text-center mb-6;
+}
+
+.avatar {
+  @apply w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full 
+         flex items-center justify-center text-white text-xl font-bold 
+         mx-auto mb-3 shadow-lg;
+}
+
+.userName {
+  @apply text-lg font-bold text-gray-800 mb-1;
+}
+
+.userRole {
+  @apply text-gray-600 text-sm mb-3;
+}
+
+.statusIndicator {
+  @apply flex items-center justify-center space-x-2 text-sm text-green-600;
+}
+
+.statusDot {
+  @apply w-2 h-2 bg-green-500 rounded-full animate-pulse;
+}
+
+.statsSection {
+  @apply space-y-2 mb-4;
+}
+
+.statItem {
+  @apply flex justify-between items-center py-1;
+}
+
+.statLabel {
+  @apply text-gray-600 text-xs;
+}
+
+.statValue {
+  @apply text-gray-800 font-semibold text-sm;
+}
+
+.logoutButton {
+  @apply w-full bg-red-500 hover:bg-red-600 focus:ring-red-500 text-sm py-2;
+}
+
+/* Main Content Styles - Sin espacios */
+.profileCard {
+  @apply w-full flex-1;
+}
+
+.cardHeader {
+  @apply flex justify-between items-center mb-4;
+}
+
+.cardTitle {
+  @apply text-xl font-bold text-gray-800;
+}
+
+.editBadge {
+  @apply bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded;
+}
+
+.profileContent {
+  @apply space-y-4;
+}
+
+.section {
+  @apply space-y-3;
+}
+
+.sectionTitle {
+  @apply text-lg font-semibold text-gray-800 flex items-center space-x-2 mb-2;
+}
+
+.sectionIcon {
+  @apply text-lg;
+}
+
+/* Grids Compactos */
+.infoGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3;
+}
+
+.contactGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+}
+
+.additionalGrid {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+}
+
+/* Info Fields Compactos */
+.infoField {
+  @apply p-3 bg-white rounded-lg border border-gray-200 shadow-sm 
+         hover:shadow-md transition-shadow duration-200;
+}
+
+.infoLabel {
+  @apply block text-xs text-gray-500 font-medium mb-1;
+}
+
+.infoValue {
+  @apply block text-gray-800 font-semibold text-sm break-words;
+}
+
+.emailLink, .phoneLink {
+  @apply text-blue-500 hover:text-blue-600 transition-colors duration-200;
+}
+
+/* Divider */
+.divider {
+  @apply h-px bg-gray-200 my-4;
+}
+
+/* Actions Card Compacta - CORREGIDO */
+.actionsCard {
+  @apply w-full;
+}
+
+.actionsTitle {
+  @apply text-lg font-semibold text-gray-800 mb-3;
+}
+
+.actionsGrid {
+  @apply grid grid-cols-2 sm:grid-cols-4 gap-2;
+}
+
+.actionButton {
+  @apply flex flex-col items-center justify-center p-2 bg-white rounded-lg 
+         border border-gray-200 hover:border-purple-300 hover:bg-purple-50
+         transition-all duration-200 ease-in-out hover:scale-105 
+         active:scale-95 space-y-1 h-16 text-xs;
+}
+
+.actionIcon {
+  @apply text-base;
+}
+
+.actionLabel {
+  @apply text-xs font-medium text-gray-700 text-center px-1;
+}
+
+/* Loading States */
+.loadingContainer {
+  @apply flex justify-center items-center min-h-screen;
+}
+
+.loadingContent {
+  @apply text-center space-y-3;
+}
+
+.loadingText {
+  @apply text-gray-600;
+}
+
+.loadingContainerSmall {
+  @apply flex items-center justify-center space-x-2 text-xs;
+}
+
+/* Error States */
+.errorCard {
+  @apply text-center max-w-sm mx-auto my-8;
+}
+
+.errorIcon {
+  @apply text-4xl mb-2;
+}
+
+.errorTitle {
+  @apply text-lg font-bold text-gray-800 mb-1;
+}
+
+.errorMessage {
+  @apply text-gray-600 text-sm mb-4;
+}
+
+.reloadButton {
+  @apply w-full text-sm py-2;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(180deg);
+  }
+}
+
+/* RESPONSIVE CORREGIDO */
+@media (max-width: 1024px) {
+  .profileLayout {
+    @apply grid-cols-1 gap-3;
+  }
+  
+  .mainContent {
+    @apply lg:col-span-2;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    @apply p-2;
+  }
+  
+  .profileLayout {
+    @apply p-2 gap-3;
+  }
+  
+  .infoGrid,
+  .contactGrid,
+  .additionalGrid {
+    @apply grid-cols-1 gap-2;
+  }
+  
+  .actionsGrid {
+    @apply grid-cols-2 gap-2;
+  }
+}
+
+@media (max-width: 480px) {
+  .actionsGrid {
+    @apply grid-cols-1;
+  }
+  
+  .cardHeader {
+    @apply flex-col items-start space-y-2;
+  }
+}
+
+/* ELIMINAR ESPACIOS EXTERNOS */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
