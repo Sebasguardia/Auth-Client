@@ -1,14 +1,17 @@
 // src/features/auth/services/authService.js
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+// En desarrollo usa proxy (/api), en producción usa URL directa
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://reflexoperu-v3.marketingmedico.vip/backend/public'
+  : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
-// Interceptor corregido
+// Interceptor se mantiene igual
 api.interceptors.request.use((config) => {
   const cookies = document.cookie.split(';');
   const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='));
@@ -19,26 +22,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Función para registro
+// Funciones - en desarrollo las rutas serán /api/login (via proxy)
+// en producción serán /api/login (directo al backend)
 export const registerUser = async (userData) => {
   try {
-    const response = await api.post('/register', userData);
+    const response = await api.post('/api/register', userData);
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;
   }
 };
 
-// Función para login
 export const loginUser = async (credentials) => {
   try {
-    const response = await api.post('/login', credentials);
+    const response = await api.post('/api/login', credentials);
     const data = response.data;
     console.log('Respuesta de login:', data);
     
-    // Setea la cookie
     if (data.token) {
-      document.cookie = `auth_token=${data.token}; path=/; secure; samesite=none; max-age=86400`;
+      document.cookie = `auth_token=${data.token}; path=/; max-age=86400`;
     }
     
     return data;
@@ -48,22 +50,13 @@ export const loginUser = async (credentials) => {
   }
 };
 
-// Función para logout CORREGIDA
 export const logoutUser = async () => {
   try {
-    const response = await api.delete('/logout');
-    
-    // Borra la cookie correctamente
+    const response = await api.delete('/api/logout');
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'; // Por si acaso
-    
-    console.log('Logout exitoso, cookies borradas');
     return response.data;
   } catch (error) {
-    console.error('Error en logout service:', error);
-    // Aún así borrar las cookies localmente
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     throw error.response?.data || error.message;
   }
 };

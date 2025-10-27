@@ -1,36 +1,33 @@
 // src/features/profile/services/profileService.js
 import axios from 'axios';
 
-const API_BASE_URL = '/api'; // Proxy
+// En desarrollo usa proxy (/api), en producción usa URL directa
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://reflexoperu-v3.marketingmedico.vip/backend/public'
+  : '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Envía cookies si existen
+  withCredentials: true,
 });
 
-// Interceptor: Lee token de cookie y envíalo en header
+// Interceptor se mantiene igual
 api.interceptors.request.use((config) => {
   const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token=')); // Cambia 'token' si el nombre es 'auth_token'
+  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='));
   if (tokenCookie) {
     const token = tokenCookie.split('=')[1];
     config.headers.Authorization = `Bearer ${token}`;
-    console.log('Token enviado en header:', token); // Log para depurar
-  } else {
-    console.log('No se encontró cookie de token');
   }
   return config;
 });
 
-// Función para obtener perfil
 export const getProfile = async () => {
   try {
-    console.log('Intentando obtener perfil...');
-    const response = await api.get('/profile');
-    console.log('Respuesta de perfil:', response.data);
+    const response = await api.get('/api/profile');
     return response.data;
   } catch (error) {
-    console.error('Error en getProfile:', error.response?.data || error.message);
+    console.error('Error en getProfile:', error);
     throw error.response?.data || error.message;
   }
 };
