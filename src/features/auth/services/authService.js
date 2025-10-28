@@ -1,35 +1,41 @@
 // src/features/auth/services/authService.js
 import axios from 'axios';
 
-// En desarrollo usa proxy (/api), en producción usa URL directa
-const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://reflexoperu-v3.marketingmedico.vip/backend/public'
-  : '/api';
+// Configuración para desarrollo y producción
+const API_BASE_URL = import.meta.env.MODE === 'development' 
+  ? '' // En desarrollo usa proxy
+  : 'https://reflexoperu-v3.marketingmedico.vip/backend/public';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
-// Interceptor se mantiene igual
+// Interceptor para agregar token
 api.interceptors.request.use((config) => {
-  const cookies = document.cookie.split(';');
-  const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='));
-  if (tokenCookie) {
-    const token = tokenCookie.split('=')[1];
+  const token = getCookie('auth_token');
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Funciones - en desarrollo las rutas serán /api/login (via proxy)
-// en producción serán /api/login (directo al backend)
+// Función auxiliar para obtener cookies
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 export const registerUser = async (userData) => {
   try {
+    // En desarrollo: /api/register → proxy → https://.../api/register
+    // En producción: https://.../api/register
     const response = await api.post('/api/register', userData);
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+    throw new Error(errorMessage);
   }
 };
 
@@ -40,13 +46,14 @@ export const loginUser = async (credentials) => {
     console.log('Respuesta de login:', data);
     
     if (data.token) {
-      document.cookie = `auth_token=${data.token}; path=/; max-age=86400`;
+      document.cookie = `auth_token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
     }
     
     return data;
   } catch (error) {
     console.error('Error en login:', error);
-    throw error.response?.data || error.message;
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+    throw new Error(errorMessage);
   }
 };
 
@@ -57,6 +64,7 @@ export const logoutUser = async () => {
     return response.data;
   } catch (error) {
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    throw error.response?.data || error.message;
+    const errorMessage = error.response?.data?.message || error.response?.data || error.message;
+    throw new Error(errorMessage);
   }
 };

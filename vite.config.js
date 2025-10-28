@@ -1,21 +1,22 @@
+// vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  server: {
+  server: mode === 'development' ? {
     proxy: {
       '/api': {
         target: 'https://reflexoperu-v3.marketingmedico.vip/backend/public',
         changeOrigin: true,
-        secure: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            proxyReq.setHeader('Origin', 'https://reflexoperu-v3.marketingmedico.vip');
-          });
-        }
+        secure: false,
       },
     },
+  } : undefined,
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1600,
   },
-});
+}));
