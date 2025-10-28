@@ -1,38 +1,80 @@
 // src/features/auth/services/authService.js
 import axios from 'axios';
 
-// Configuración para desarrollo y producción
-const API_BASE_URL = import.meta.env.MODE === 'development' 
-  ? '' // En desarrollo usa proxy
-  : 'https://reflexoperu-v3.marketingmedico.vip/backend/public';
+const API_BASE_URL = 'https://reflexoperu-v3.marketingmedico.vip/backend/public';
 
-const api = axios.create({
+// Crear dos instancias de axios: una con credentials y otra sin
+const apiWithCredentials = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
-// Interceptor para agregar token
-api.interceptors.request.use((config) => {
-  const token = getCookie('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+const apiWithoutCredentials = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: false,
 });
 
-// Función auxiliar para obtener cookies
+// Función inteligente que intenta con credentials primero, luego sin
+const makeRequest = async (method, url, data = null) => {
+  try {
+    // Primero intenta con credentials
+    let response;
+    if (method === 'get') {
+      response = await apiWithCredentials.get(url);
+    } else if (method === 'post') {
+      response = await apiWithCredentials.post(url, data);
+    } else if (method === 'delete') {
+      response = await apiWithCredentials.delete(url);
+    }
+    return response.data;
+  } catch (error) {
+    // Si falla por CORS, intenta sin credentials y maneja cookies manualmente
+    console.log('Intento con credentials falló, intentando sin credentials...');
+    
+    let response;
+    const config = {
+      headers: {
+        'Authorization': `Bearer ${getCookie('auth_token')}`
+      }
+    };
+
+    if (method === 'get') {
+      response = await apiWithoutCredentials.get(url, config);
+    } else if (method === 'post') {
+      response = await apiWithoutCredentials.post(url, data, config);
+    } else if (method === 'delete') {
+      response = await apiWithoutCredentials.delete(url, config);
+    }
+
+    // Si es login/register, guarda el token manualmente
+    if (url === '/api/login' && response.data.token) {
+      setCookie('auth_token', response.data.token, 1);
+    }
+
+    return response.data;
+  }
+};
+
+// Helper functions para cookies
+function setCookie(name, value, days) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/; SameSite=None; Secure';
+}
+
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
+  if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+}
+
+function deleteCookie(name) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=None; Secure';
 }
 
 export const registerUser = async (userData) => {
   try {
-    // En desarrollo: /api/register → proxy → https://.../api/register
-    // En producción: https://.../api/register
-    const response = await api.post('/api/register', userData);
-    return response.data;
+    const data = await makeRequest('post', '/api/register', userData);
+    return data;
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
     throw new Error(errorMessage);
@@ -41,12 +83,11 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (credentials) => {
   try {
-    const response = await api.post('/api/login', credentials);
-    const data = response.data;
-    console.log('Respuesta de login:', data);
+    const data = await makeRequest('post', '/api/login', credentials);
     
-    if (data.token) {
-      document.cookie = `auth_token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
+    // Si usamos la segunda opción (sin credentials), el token viene en la respuesta
+    if (data.token && !getCookie('auth_token')) {
+      setCookie('auth_token', data.token, 1);
     }
     
     return data;
@@ -59,11 +100,10 @@ export const loginUser = async (credentials) => {
 
 export const logoutUser = async () => {
   try {
-    const response = await api.delete('/api/logout');
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    return response.data;
+    await makeRequest('delete', '/api/logout');
+    deleteCookie('auth_token');
   } catch (error) {
-    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    deleteCookie('auth_token');
     const errorMessage = error.response?.data?.message || error.response?.data || error.message;
     throw new Error(errorMessage);
   }

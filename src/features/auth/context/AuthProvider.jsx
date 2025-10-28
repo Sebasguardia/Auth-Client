@@ -22,7 +22,11 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log('No autenticado:', error.message);
       setUser(null);
-      setError(error.message);
+      // No establecer error para fallos de autenticación (es normal)
+      if (!error.message.includes('No authentication token') && 
+          !error.message.includes('401')) {
+        setError(error.message);
+      }
     } finally {
       setLoading(false);
     }
