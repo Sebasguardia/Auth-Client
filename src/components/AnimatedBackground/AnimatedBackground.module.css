@@ -1,0 +1,63 @@
+/* src/components/AnimatedBackground/AnimatedBackground.module.css */
+.background {
+  @apply fixed inset-0 -z-10 overflow-hidden;
+}
+
+.gradient {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    135deg,
+    #667eea 0%,
+    #764ba2 25%,
+    #f093fb 50%,
+    #f5576c 75%,
+    #4facfe 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.bubbles {
+  @apply absolute inset-0;
+}
+
+.bubble {
+  @apply absolute bottom-0 w-4 h-4 bg-white/10 rounded-full;
+  animation: floatUp linear infinite;
+}
+
+.grid {
+  @apply absolute inset-0;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes floatUp {
+  0% { 
+    transform: translateY(0) scale(0);
+    opacity: 0;
+  }
+  10% { 
+    opacity: 0.3;
+  }
+  90% { 
+    opacity: 0.2;
+  }
+  100% { 
+    transform: translateY(-100vh) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes gridMove {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(50px, 50px); }
+}

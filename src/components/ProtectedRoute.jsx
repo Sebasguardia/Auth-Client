@@ -1,24 +1,24 @@
-import { useContext } from 'react';
+// src/components/ProtectedRoute/ProtectedRoute.jsx
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import styles from './ProtectedRoute.module.css';
+import { useAuth } from '../../features/auth/hooks/useAuth';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 
 const ProtectedRoute = ({ children }) => {
-  const { tokens } = useContext(AuthContext);
-
-  if (!tokens?.access) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
     return (
-      <div className={styles.redirectOverlay}>
-        <div className={styles.redirectContent}>
-          <div className={styles.spinner}></div>
-          <p>Redirigiendo al login...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="large" />
+          <p className="text-gray-600 dark:text-gray-400">Verificando autenticación...</p>
         </div>
-        <Navigate to="/" replace />
       </div>
     );
   }
-
-  return children;
+  
+  return user ? children : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;

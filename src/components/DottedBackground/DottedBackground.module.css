@@ -1,0 +1,26 @@
+/* src/components/DottedBackground/DottedBackground.module.css */
+.dottedBackground {
+  @apply fixed inset-0 -z-10 pointer-events-none;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.dottedBackground canvas {
+  @apply w-full h-full;
+}
+
+/* Estados para modo claro y oscuro */
+.dottedBackground.light {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 245, 245, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+}
+
+.dottedBackground.dark {
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.3) 0%,
+    rgba(30, 41, 59, 0.4) 50%,
+    rgba(15, 23, 42, 0.3) 100%
+  );
+}

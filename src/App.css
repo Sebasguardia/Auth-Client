@@ -1,0 +1,9 @@
+/* Estilos de reset temporal */
+.blog-container * {
+  box-sizing: border-box;
+}
+
+.blog-container {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
