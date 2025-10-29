@@ -1,253 +1,210 @@
-// src/components/DottedBackground/DottedBackground.jsx
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
-import styles from './DottedBackground.module.css';
+import { Renderer, Program, Mesh, Triangle } from 'ogl';
+import { useEffect, useRef } from 'react';
 
-const DottedBackground = ({ className = '' }) => {
+function hexToVec4(hex) {
+  let hexStr = hex.replace('#', '');
+  let r = 0,
+    g = 0,
+    b = 0,
+    a = 1;
+  if (hexStr.length === 6) {
+    r = parseInt(hexStr.slice(0, 2), 16) / 255;
+    g = parseInt(hexStr.slice(2, 4), 16) / 255;
+    b = parseInt(hexStr.slice(4, 6), 16) / 255;
+  } else if (hexStr.length === 8) {
+    r = parseInt(hexStr.slice(0, 2), 16) / 255;
+    g = parseInt(hexStr.slice(2, 4), 16) / 255;
+    b = parseInt(hexStr.slice(4, 6), 16) / 255;
+    a = parseInt(hexStr.slice(6, 8), 16) / 255;
+  }
+  return [r, g, b, a];
+}
+
+const vertexShader = `
+attribute vec2 uv;
+attribute vec2 position;
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = vec4(position, 0, 1);
+}
+`;
+
+const fragmentShader = `
+precision highp float;
+
+#define PI 3.14159265359
+
+uniform float iTime;
+uniform vec3 iResolution;
+uniform float uSpinRotation;
+uniform float uSpinSpeed;
+uniform vec2 uOffset;
+uniform vec4 uColor1;
+uniform vec4 uColor2;
+uniform vec4 uColor3;
+uniform float uContrast;
+uniform float uLighting;
+uniform float uSpinAmount;
+uniform float uPixelFilter;
+uniform float uSpinEase;
+uniform bool uIsRotate;
+uniform vec2 uMouse;
+
+varying vec2 vUv;
+
+vec4 effect(vec2 screenSize, vec2 screen_coords) {
+    float pixel_size = length(screenSize.xy) / uPixelFilter;
+    vec2 uv = (floor(screen_coords.xy * (1.0 / pixel_size)) * pixel_size - 0.5 * screenSize.xy) / length(screenSize.xy) - uOffset;
+    float uv_len = length(uv);
+    
+    float speed = (uSpinRotation * uSpinEase * 0.2);
+    if(uIsRotate){
+       speed = iTime * speed;
+    }
+    speed += 302.2;
+    
+    float mouseInfluence = (uMouse.x * 2.0 - 1.0);
+    speed += mouseInfluence * 0.1;
+    
+    float new_pixel_angle = atan(uv.y, uv.x) + speed - uSpinEase * 20.0 * (uSpinAmount * uv_len + (1.0 - uSpinAmount));
+    vec2 mid = (screenSize.xy / length(screenSize.xy)) / 2.0;
+    uv = (vec2(uv_len * cos(new_pixel_angle) + mid.x, uv_len * sin(new_pixel_angle) + mid.y) - mid);
+    
+    uv *= 30.0;
+    float baseSpeed = iTime * uSpinSpeed;
+    speed = baseSpeed + mouseInfluence * 2.0;
+    
+    vec2 uv2 = vec2(uv.x + uv.y);
+    
+    for(int i = 0; i < 5; i++) {
+        uv2 += sin(max(uv.x, uv.y)) + uv;
+        uv += 0.5 * vec2(
+            cos(5.1123314 + 0.353 * uv2.y + speed * 0.131121),
+            sin(uv2.x - 0.113 * speed)
+        );
+        uv -= cos(uv.x + uv.y) - sin(uv.x * 0.711 - uv.y);
+    }
+    
+    float contrast_mod = (0.25 * uContrast + 0.5 * uSpinAmount + 1.2);
+    float paint_res = min(2.0, max(0.0, length(uv) * 0.035 * contrast_mod));
+    float c1p = max(0.0, 1.0 - contrast_mod * abs(1.0 - paint_res));
+    float c2p = max(0.0, 1.0 - contrast_mod * abs(paint_res));
+    float c3p = 1.0 - min(1.0, c1p + c2p);
+    float light = (uLighting - 0.2) * max(c1p * 5.0 - 4.0, 0.0) + uLighting * max(c2p * 5.0 - 4.0, 0.0);
+    
+    return (0.3 / uContrast) * uColor1 + (1.0 - 0.3 / uContrast) * (uColor1 * c1p + uColor2 * c2p + vec4(c3p * uColor3.rgb, c3p * uColor1.a)) + light;
+}
+
+void main() {
+    vec2 uv = vUv * iResolution.xy;
+    gl_FragColor = effect(iResolution.xy, uv);
+}
+`;
+
+export default function Balatro({
+  spinRotation = -2.0,
+  spinSpeed = 7.0,
+  offset = [0.0, 0.0],
+  color1 = '#DE443B',
+  color2 = '#006BB4',
+  color3 = '#162325',
+  contrast = 3.5,
+  lighting = 0.4,
+  spinAmount = 0.25,
+  pixelFilter = 745.0,
+  spinEase = 1.0,
+  isRotate = false,
+  mouseInteraction = true
+}) {
   const containerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Detectar cambios en dark mode
-  useEffect(() => {
-    const checkDarkMode = () => {
-      const isDark = document.documentElement.classList.contains('dark');
-      setIsDarkMode(isDark);
-    };
-
-    // Verificar al cargar
-    checkDarkMode();
-
-    // Observar cambios en la clase dark
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          checkDarkMode();
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
+    const renderer = new Renderer();
+    const gl = renderer.gl;
+    gl.clearColor(0, 0, 0, 1);
 
-    const SEPARATION = 100;
-    const AMOUNTX = 50;
-    const AMOUNTY = 50;
+    let program;
 
-    // Scene setup
-    const scene = new THREE.Scene();
-    
-    // FOG DINÁMICO - Cambia según modo oscuro
-    scene.fog = new THREE.Fog(
-      isDarkMode ? 0x0f172a : 0xffffff, // Color del fog según modo
-      1, 
-      10000
-    );
-
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      1,
-      10000
-    );
-    camera.position.z = 1000;
-
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true
-    });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0); // Fondo transparente
-
-    containerRef.current.appendChild(renderer.domElement);
-
-    // Particles
-    const particles = [];
-    const positions = [];
-    const colors = [];
-
-    const geometry = new THREE.BufferGeometry();
-
-    for (let ix = 0; ix < AMOUNTX; ix++) {
-      for (let iy = 0; iy < AMOUNTY; iy++) {
-        const x = ix * SEPARATION - ((AMOUNTX * SEPARATION) / 2);
-        const y = 0;
-        const z = iy * SEPARATION - ((AMOUNTY * SEPARATION) / 2);
-
-        positions.push(x, y, z);
-        
-        // COLORES DINÁMICOS - Cambian según modo oscuro
-        const color = new THREE.Color();
-        if (isDarkMode) {
-          // Modo oscuro: tonos azules y púrpuras
-          color.setHSL(
-            (x / (AMOUNTX * SEPARATION) + 0.5) * 0.3 + 0.5, // Azules a púrpuras
-            0.7, // Saturación alta
-            (z / (AMOUNTY * SEPARATION) + 0.5) * 0.4 + 0.3 // Brillo moderado
-          );
-        } else {
-          // Modo claro: tonos cálidos y vibrantes
-          color.setHSL(
-            (x / (AMOUNTX * SEPARATION) + 0.5) * 0.6 + 0.2, // Naranjas a rosas
-            0.8, // Saturación alta
-            (z / (AMOUNTY * SEPARATION) + 0.5) * 0.3 + 0.4 // Brillo alto
-          );
-        }
-        colors.push(color.r, color.g, color.b);
+    function resize() {
+      renderer.setSize(container.offsetWidth, container.offsetHeight);
+      if (program) {
+        program.uniforms.iResolution.value = [gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height];
       }
     }
+    window.addEventListener('resize', resize);
+    resize();
 
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-
-    const material = new THREE.PointsMaterial({
-      size: isDarkMode ? 4 : 3, // Puntos más grandes en modo oscuro
-      vertexColors: true,
-      transparent: true,
-      opacity: isDarkMode ? 0.9 : 0.8, // Más opaco en modo oscuro
-      sizeAttenuation: true
+    const geometry = new Triangle(gl);
+    program = new Program(gl, {
+      vertex: vertexShader,
+      fragment: fragmentShader,
+      uniforms: {
+        iTime: { value: 0 },
+        iResolution: {
+          value: [gl.canvas.width, gl.canvas.height, gl.canvas.width / gl.canvas.height]
+        },
+        uSpinRotation: { value: spinRotation },
+        uSpinSpeed: { value: spinSpeed },
+        uOffset: { value: offset },
+        uColor1: { value: hexToVec4(color1) },
+        uColor2: { value: hexToVec4(color2) },
+        uColor3: { value: hexToVec4(color3) },
+        uContrast: { value: contrast },
+        uLighting: { value: lighting },
+        uSpinAmount: { value: spinAmount },
+        uPixelFilter: { value: pixelFilter },
+        uSpinEase: { value: spinEase },
+        uIsRotate: { value: isRotate },
+        uMouse: { value: [0.5, 0.5] }
+      }
     });
 
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
+    const mesh = new Mesh(gl, { geometry, program });
+    let animationFrameId;
 
-    let count = 0;
-    let animationId;
+    function update(time) {
+      animationFrameId = requestAnimationFrame(update);
+      program.uniforms.iTime.value = time * 0.001;
+      renderer.render({ scene: mesh });
+    }
+    animationFrameId = requestAnimationFrame(update);
+    container.appendChild(gl.canvas);
 
-    // Animation
-    const animate = () => {
-      animationId = requestAnimationFrame(animate);
+    function handleMouseMove(e) {
+      if (!mouseInteraction) return;
+      const rect = container.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = 1.0 - (e.clientY - rect.top) / rect.height;
+      program.uniforms.uMouse.value = [x, y];
+    }
+    container.addEventListener('mousemove', handleMouseMove);
 
-      const positions = geometry.attributes.position.array;
-      let i = 0;
-
-      for (let ix = 0; ix < AMOUNTX; ix++) {
-        for (let iy = 0; iy < AMOUNTY; iy++) {
-          positions[i * 3 + 1] = Math.sin((ix + count) * 0.3) * 50 + 
-                                Math.sin((iy + count) * 0.5) * 50;
-          i++;
-        }
-      }
-
-      geometry.attributes.position.needsUpdate = true;
-
-      // Rotación suave de la cámara
-      camera.position.x = Math.sin(count * 0.1) * 800;
-      camera.position.y = Math.cos(count * 0.15) * 800;
-      camera.lookAt(scene.position);
-
-      renderer.render(scene, camera);
-      count += 0.04;
-    };
-
-    // Handle resize
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    };
-
-    window.addEventListener('resize', handleResize);
-    animate();
-
-    // Store references
-    sceneRef.current = {
-      scene,
-      camera,
-      renderer,
-      points,
-      material,
-      geometry,
-      animationId
-    };
-
-    // Cleanup
     return () => {
-      window.removeEventListener('resize', handleResize);
-      
-      if (sceneRef.current) {
-        cancelAnimationFrame(sceneRef.current.animationId);
-        
-        // Clean up Three.js resources
-        sceneRef.current.geometry.dispose();
-        sceneRef.current.material.dispose();
-        sceneRef.current.renderer.dispose();
-        
-        if (containerRef.current && sceneRef.current.renderer.domElement) {
-          containerRef.current.removeChild(sceneRef.current.renderer.domElement);
-        }
-      }
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resize);
+      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeChild(gl.canvas);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
-  }, [isDarkMode]); // Se re-crea cuando cambia el modo oscuro
+  }, [
+    spinRotation,
+    spinSpeed,
+    offset,
+    color1,
+    color2,
+    color3,
+    contrast,
+    lighting,
+    spinAmount,
+    pixelFilter,
+    spinEase,
+    isRotate,
+    mouseInteraction,
+    containerRef
+  ]);
 
-  // Función para actualizar los colores cuando cambia el modo oscuro
-  useEffect(() => {
-    if (!sceneRef.current || !sceneRef.current.geometry) return;
-
-    const geometry = sceneRef.current.geometry;
-    const material = sceneRef.current.material;
-    const colors = geometry.attributes.color.array;
-
-    // Actualizar colores
-    let colorIndex = 0;
-    for (let ix = 0; ix < 50; ix++) {
-      for (let iy = 0; iy < 50; iy++) {
-        const x = ix * 100 - (50 * 100) / 2;
-        const z = iy * 100 - (50 * 100) / 2;
-        
-        const color = new THREE.Color();
-        if (isDarkMode) {
-          // Modo oscuro: tonos azules y púrpuras
-          color.setHSL(
-            (x / (50 * 100) + 0.5) * 0.3 + 0.5,
-            0.7,
-            (z / (50 * 100) + 0.5) * 0.4 + 0.3
-          );
-        } else {
-          // Modo claro: tonos cálidos y vibrantes
-          color.setHSL(
-            (x / (50 * 100) + 0.5) * 0.6 + 0.2,
-            0.8,
-            (z / (50 * 100) + 0.5) * 0.3 + 0.4
-          );
-        }
-        
-        colors[colorIndex] = color.r;
-        colors[colorIndex + 1] = color.g;
-        colors[colorIndex + 2] = color.b;
-        colorIndex += 3;
-      }
-    }
-
-    geometry.attributes.color.needsUpdate = true;
-
-    // Actualizar material
-    material.size = isDarkMode ? 4 : 3;
-    material.opacity = isDarkMode ? 0.9 : 0.8;
-    material.needsUpdate = true;
-
-    // Actualizar fog
-    sceneRef.current.scene.fog.color.setHex(isDarkMode ? 0x0f172a : 0xffffff);
-
-  }, [isDarkMode]);
-
-  return (
-    <div 
-      ref={containerRef} 
-      className={`${styles.dottedBackground} ${className} ${
-        isDarkMode ? styles.dark : styles.light
-      }`}
-    />
-  );
-};
-
-export default DottedBackground;
+  return <div ref={containerRef} className="w-full h-full" />;
+}
